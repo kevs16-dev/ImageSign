@@ -41,12 +41,12 @@ class WatermarkApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mionjo Copyright Tool")
-        self.root.geometry("400x300")
+        self.root.geometry("400x320")
         self.root.resizable(False, False)
 
         # Variables
-        self.image_path = ""
-        self.output_path = ""
+        self.image_paths = []   # Liste des images
+        self.output_dir = ""    # Dossier de sortie
         self.brand = tk.StringVar(value="Mionjo")
         self.font_size = tk.IntVar(value=40)
         self.color = (255, 255, 255, 128)
@@ -59,8 +59,9 @@ class WatermarkApp:
         tk.Entry(root, textvariable=self.font_size).pack(pady=5)
 
         tk.Button(root, text="Choisir couleur", command=self.choose_color).pack(pady=5)
-        tk.Button(root, text="Sélectionner une image", command=self.load_image).pack(pady=5)
-        tk.Button(root, text="Ajouter le watermark", command=self.process_image).pack(pady=15)
+        tk.Button(root, text="Sélectionner plusieurs images", command=self.load_images).pack(pady=5)
+        tk.Button(root, text="Choisir dossier de sortie", command=self.choose_output_dir).pack(pady=5)
+        tk.Button(root, text="Lancer le traitement", command=self.process_images).pack(pady=15)
 
     def choose_color(self):
         color_code = colorchooser.askcolor(title="Choisir une couleur")
@@ -68,26 +69,40 @@ class WatermarkApp:
             r, g, b = color_code[0]
             self.color = (int(r), int(g), int(b), 255)
 
-    def load_image(self):
+    def load_images(self):
         filetypes = [("Images", "*.jpg *.jpeg *.png")]
-        self.image_path = filedialog.askopenfilename(title="Choisir une image", filetypes=filetypes)
-        if self.image_path:
-            self.output_path = os.path.splitext(self.image_path)[0] + "_watermarked.jpg"
-            messagebox.showinfo("Image chargée", f"Image sélectionnée : {self.image_path}")
+        self.image_paths = filedialog.askopenfilenames(title="Choisir des images", filetypes=filetypes)
+        if self.image_paths:
+            messagebox.showinfo("Images chargées", f"{len(self.image_paths)} images sélectionnées")
 
-    def process_image(self):
-        if not self.image_path:
-            messagebox.showerror("Erreur", "Veuillez choisir une image d'abord")
+    def choose_output_dir(self):
+        self.output_dir = filedialog.askdirectory(title="Choisir le dossier de sortie")
+        if self.output_dir:
+            messagebox.showinfo("Dossier choisi", f"Dossier de sortie : {self.output_dir}")
+
+    def process_images(self):
+        if not self.image_paths:
+            messagebox.showerror("Erreur", "Veuillez sélectionner des images d'abord")
             return
+        if not self.output_dir:
+            messagebox.showerror("Erreur", "Veuillez choisir un dossier de sortie")
+            return
+
         try:
-            add_watermark(
-                self.image_path,
-                self.output_path,
-                brand=self.brand.get(),
-                color=self.color,
-                font_size=self.font_size.get()
-            )
-            messagebox.showinfo("Succès", f"Image sauvegardée : {self.output_path}")
+            for img_path in self.image_paths:
+                filename = os.path.basename(img_path)
+                name, ext = os.path.splitext(filename)
+                output_path = os.path.join(self.output_dir, f"{name}.jpg")
+
+                add_watermark(
+                    img_path,
+                    output_path,
+                    brand=self.brand.get(),
+                    color=self.color,
+                    font_size=self.font_size.get()
+                )
+
+            messagebox.showinfo("Succès", f"{len(self.image_paths)} images traitées avec succès !")
         except Exception as e:
             messagebox.showerror("Erreur", str(e))
 
